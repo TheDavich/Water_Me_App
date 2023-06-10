@@ -146,7 +146,9 @@ fun ReminderDialogContent(
 
     AlertDialog(
         onDismissRequest = { onDialogDismiss() },
-        confirmButton = {},
+        confirmButton = {
+
+        },
         title = { Text(stringResource(R.string.remind_me, plantName)) },
         text = {
             Column {

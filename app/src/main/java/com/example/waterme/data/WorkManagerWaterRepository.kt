@@ -17,10 +17,13 @@
 package com.example.waterme.data
 
 import android.content.Context
+import androidx.work.Constraints
 import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import androidx.work.workDataOf
 import com.example.waterme.model.Plant
 import com.example.waterme.worker.WaterReminderWorker
 import java.util.concurrent.TimeUnit
@@ -32,18 +35,23 @@ class WorkManagerWaterRepository(context: Context) : WaterRepository {
         get() = DataSource.plants
 
     override fun scheduleReminder(duration: Long, unit: TimeUnit, plantName: String) {
-        val data = Data.Builder()
-        data.putString(WaterReminderWorker.nameKey, plantName)
+        val inputData = workDataOf(WaterReminderWorker.nameKey to plantName)
 
-        val workRequestBuilder = OneTimeWorkRequestBuilder<WaterReminderWorker>()
-            .setInitialDelay(duration, unit)
-            .setInputData(data.build())
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.NOT_REQUIRED)
+            .setRequiresCharging(false)
+            .setRequiresBatteryNotLow(true)
             .build()
 
-        workManager.enqueueUniqueWork(
-            plantName + duration,
-            ExistingWorkPolicy.REPLACE,
-            workRequestBuilder
-        )
+        val delay = unit.toMillis(duration)
+
+        val workRequest = OneTimeWorkRequestBuilder<WaterReminderWorker>()
+            .setInitialDelay(delay, TimeUnit.MILLISECONDS)
+            .setConstraints(constraints)
+            .setInputData(inputData)
+            .build()
+
+        workManager.enqueueUniqueWork(plantName, ExistingWorkPolicy.REPLACE, workRequest)
     }
+
 }
